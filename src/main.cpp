@@ -168,33 +168,9 @@ void testFileIO(fs::FS &fs, const char * path){
   file.close();
 }
 
-void setup(){
-  Serial.begin(115200);
-  if(!SD.begin(5)){
-    Serial.println("Card Mount Failed");
-    return;
-  }
-  uint8_t cardType = SD.cardType();
+void setup()
+{
   
-  if(cardType == CARD_NONE){
-    Serial.println("No SD card attached");
-    return;
-  }
-
-  Serial.print("SD Card Type: ");
-  if(cardType == CARD_MMC){
-    Serial.println("MMC");
-  } else if(cardType == CARD_SD){
-    Serial.println("SDSC");
-  } else if(cardType == CARD_SDHC){
-    Serial.println("SDHC");
-  } else {
-    Serial.println("UNKNOWN");
-  }
-
-  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-  Serial.printf("SD Card Size: %lluMB\n", cardSize);
-
   listDir(SD, "/", 0);
   createDir(SD, "/mydir");
   listDir(SD, "/", 0);
@@ -213,4 +189,35 @@ void setup(){
 
 void loop(){
 
+}
+
+
+void sistem_init()
+{
+  Serial.begin(115200);
+  if(!SD.begin(5)){
+    Serial.println("SD kart init edilemedi!");
+    return;
+  }
+  uint8_t kartTuru = SD.cardType();
+  
+  
+  if(kartTuru == CARD_NONE){
+    Serial.println("SD kart bulunamadi!");
+    return;
+  }
+
+  Serial.print("SD kart turu: ");
+  if(kartTuru == CARD_MMC)
+    Serial.println("MMC");
+  else if(kartTuru == CARD_SD)
+    Serial.println("SDSC");
+  else if(kartTuru == CARD_SDHC)
+    Serial.println("SDHC");
+  else 
+    Serial.println("UNKNOWN");
+  
+
+  uint64_t kartBoyutu = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Kart Boyutu: %lluMB\n", kartBoyutu);
 }

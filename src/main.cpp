@@ -1,193 +1,42 @@
-/*
-  Rui Santos
-  Complete project details at https://RandomNerdTutorials.com/esp32-microsd-card-arduino/
-  
-  This sketch can be found at: Examples > SD(esp32) > SD_Test
-*/
 #include <Arduino.h>
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
 
 
+void sistem_init();
+void liste_dizini(fs::FS &fs, const char * dizAdi, uint8_t seviyeler);
+void dizi_olustur(fs::FS &fs, const char * yol);
+void dizini_sil(fs::FS &fs, const char * yol);
+void dosya_oku(fs::FS &fs, const char * yol);
+void dosyaya_yaz(fs::FS &fs, const char * yol, const char * yazilacakVeri);
+void dosya_ekle(fs::FS &fs, const char * yol, const char * dosyaya_eklenecekVeri);
+void dosyayi_yeniden_adlandir(fs::FS &fs, const char * yol1, const char * yol2);
+void dosyayi_sil(fs::FS &fs, const char * yol);
+void dosya_test_IO(fs::FS &fs, const char * yol);
 
-void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
-  Serial.printf("Listing directory: %s\n", dirname);
-
-  fs::File root = fs.open(dirname);
-  if(!root){
-    Serial.println("Failed to open directory");
-    return;
-  }
-  if(!root.isDirectory()){
-    Serial.println("Not a directory");
-    return;
-  }
-
-  fs::File entry = root.openNextFile();
-  while(entry){
-    if(entry.isDirectory()){
-      Serial.print("  DIR : ");
-      Serial.println(entry.name());
-      if(levels){
-        listDir(fs, entry.name(), levels -1);
-      }
-    } else {
-      Serial.print("  FILE: ");
-      Serial.print(entry.name());
-      Serial.print("  SIZE: ");
-      Serial.println(entry.size());
-    }
-    entry = root.openNextFile();
-  }
-}
-
-void createDir(fs::FS &fs, const char * path){
-  Serial.printf("Creating Dir: %s\n", path);
-  if(fs.mkdir(path)){
-    Serial.println("Dir created");
-  } else {
-    Serial.println("mkdir failed");
-  }
-}
-
-void removeDir(fs::FS &fs, const char * path){
-  Serial.printf("Removing Dir: %s\n", path);
-  if(fs.rmdir(path)){
-    Serial.println("Dir removed");
-  } else {
-    Serial.println("rmdir failed");
-  }
-}
-
-void readFile(fs::FS &fs, const char * path){
-  Serial.printf("Reading file: %s\n", path);
-
-  fs::File file = fs.open(path);
-  if(!file){
-    Serial.println("Failed to open file for reading");
-    return;
-  }
-
-  Serial.print("Read from file: ");
-  while(file.available()){
-    Serial.write(file.read());
-  }
-  file.close();
-}
-
-void writeFile(fs::FS &fs, const char * path, const char * message){
-  Serial.printf("Writing file: %s\n", path);
-
-  fs::File file = fs.open(path, FILE_WRITE);
-  if(!file){
-    Serial.println("Failed to open file for writing");
-    return;
-  }
-  if(file.print(message)){
-    Serial.println("File written");
-  } else {
-    Serial.println("Write failed");
-  }
-  file.close();
-}
-
-void appendFile(fs::FS &fs, const char * path, const char * message){
-  Serial.printf("Appending to file: %s\n", path);
-
-  fs::File file = fs.open(path, FILE_APPEND);
-  if(!file){
-    Serial.println("Failed to open file for appending");
-    return;
-  }
-  if(file.print(message)){
-      Serial.println("Message appended");
-  } else {
-    Serial.println("Append failed");
-  }
-  file.close();
-}
-
-void renameFile(fs::FS &fs, const char * path1, const char * path2){
-  Serial.printf("Renaming file %s to %s\n", path1, path2);
-  if (fs.rename(path1, path2)) {
-    Serial.println("File renamed");
-  } else {
-    Serial.println("Rename failed");
-  }
-}
-
-void deleteFile(fs::FS &fs, const char * path){
-  Serial.printf("Deleting file: %s\n", path);
-  if(fs.remove(path)){
-    Serial.println("File deleted");
-  } else {
-    Serial.println("Delete failed");
-  }
-}
-
-void testFileIO(fs::FS &fs, const char * path){
-  fs::File file = fs.open(path);
-  static uint8_t buf[512];
-  size_t len = 0;
-  uint32_t start = millis();
-  uint32_t end = start;
-  if(file){
-    len = file.size();
-    size_t flen = len;
-    start = millis();
-    while(len){
-      size_t toRead = len;
-      if(toRead > 512){
-        toRead = 512;
-      }
-      file.read(buf, toRead);
-      len -= toRead;
-    }
-    end = millis() - start;
-    Serial.printf("%u bytes read for %u ms\n", flen, end);
-    file.close();
-  } else {
-    Serial.println("Failed to open file for reading");
-  }
-
-
-  file = fs.open(path, FILE_WRITE);
-  if(!file){
-    Serial.println("Failed to open file for writing");
-    return;
-  }
-
-  size_t i;
-  start = millis();
-  for(i=0; i<2048; i++){
-    file.write(buf, 512);
-  }
-  end = millis() - start;
-  Serial.printf("%u bytes written for %u ms\n", 2048 * 512, end);
-  file.close();
-}
 
 void setup()
 {
   
-  listDir(SD, "/", 0);
-  createDir(SD, "/mydir");
-  listDir(SD, "/", 0);
-  removeDir(SD, "/mydir");
-  listDir(SD, "/", 2);
-  writeFile(SD, "/hello.txt", "Hello ");
-  appendFile(SD, "/hello.txt", "World!\n");
-  readFile(SD, "/hello.txt");
-  deleteFile(SD, "/foo.txt");
-  renameFile(SD, "/hello.txt", "/foo.txt");
-  readFile(SD, "/foo.txt");
-  testFileIO(SD, "/test.txt");
+  liste_dizini(SD, "/", 0);
+  dizi_olustur(SD, "/mydir");
+  liste_dizini(SD, "/", 0);
+  dizini_sil(SD, "/mydir");
+  liste_dizini(SD, "/", 2);
+  dosyaya_yaz(SD, "/hello.txt", "Hello ");
+  dosya_ekle(SD, "/hello.txt", "World!\n");
+  dosya_oku(SD, "/hello.txt");
+  dosyayi_sil(SD, "/foo.txt");
+  dosyayi_yeniden_adlandir(SD, "/hello.txt", "/foo.txt");
+  dosya_oku(SD, "/foo.txt");
+  dosya_test_IO(SD, "/test.txt");
   Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
   Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
 }
 
-void loop(){
+void loop()
+{
 
 }
 
@@ -195,14 +44,16 @@ void loop(){
 void sistem_init()
 {
   Serial.begin(115200);
-  if(!SD.begin(5)){
+  if(!SD.begin(5))
+  {
     Serial.println("SD kart init edilemedi!");
     return;
   }
   uint8_t kartTuru = SD.cardType();
   
   
-  if(kartTuru == CARD_NONE){
+  if(kartTuru == CARD_NONE)
+  {
     Serial.println("SD kart bulunamadi!");
     return;
   }
@@ -220,4 +71,188 @@ void sistem_init()
 
   uint64_t kartBoyutu = SD.cardSize() / (1024 * 1024);
   Serial.printf("SD Kart Boyutu: %lluMB\n", kartBoyutu);
+}
+
+
+void liste_dizini(fs::FS &fs, const char * dizAdi, uint8_t seviyeler)
+{
+  Serial.printf("Liste Dizini: %s\n", dizAdi);
+
+  File root = fs.open(dizAdi);
+  if(!root){
+    Serial.println("Dizin acilamadi");
+    return;
+  }
+  if(!root.isDirectory()){
+    Serial.println("Bir dizin değil");
+    return;
+  }
+
+  File entry = root.openNextFile();
+  while(entry)
+  {
+    if(entry.isDirectory())
+    {
+      Serial.print("  DIZIN : ");
+      Serial.println(entry.name());
+      if(seviyeler)
+        liste_dizini(fs, entry.name(), seviyeler -1);
+      
+    } 
+    else 
+    {
+      Serial.print("  DOSYA: ");
+      Serial.print(entry.name());
+      Serial.print("  BOYUT: ");
+      Serial.println(entry.size());
+    }
+    entry = root.openNextFile();
+  }
+}
+
+void dizi_olustur(fs::FS &fs, const char * yol)
+{
+  Serial.printf("Dizin olusturuluyor: %s\n", yol);
+  if(fs.mkdir(yol))
+  {
+    Serial.println("Dizin olusturuldu");
+  } else 
+  {
+    Serial.println("mkdir komutu basarisiz");
+  }
+}
+
+void dizini_sil(fs::FS &fs, const char * yol)
+{
+  Serial.printf("Dizin siliniyor: %s\n", yol);
+  if(fs.rmdir(yol))
+  {
+    Serial.println("Dizin silindi");
+  } else 
+  {
+    Serial.println("rmdir komutu basarisiz");
+  }
+}
+
+void dosya_oku(fs::FS &fs, const char * yol)
+{
+  Serial.printf("Dosya okunuyor: %s\n", yol);
+
+  fs::File dosya = fs.open(yol);
+  if(!dosya){
+    Serial.println("Okunacak dosya acilamadi");
+    return;
+  }
+
+  Serial.print("Dosyadan okunanlar: ");
+  while(dosya.available())
+  {
+    Serial.write(dosya.read());
+  }
+  dosya.close();
+}
+
+void dosyaya_yaz(fs::FS &fs, const char * yol, const char * yazilacakVeri)
+{
+  Serial.printf("Yazilacak dosya: %s\n", yol);
+
+  fs::File dosya = fs.open(yol, FILE_WRITE);
+  if(!dosya)
+  {
+    Serial.println("Yazmak için dosya acilamadi");
+    return;
+  }
+  if(dosya.print(yazilacakVeri))
+  {
+    Serial.println("Dosya yazildi");
+  } else {
+    Serial.println("yazma basarisiz");
+  }
+  dosya.close();
+}
+
+void dosya_ekle(fs::FS &fs, const char * yol, const char * dosyayiEkle)
+{
+  Serial.printf("Dosya ekleniyor: %s\n", yol);
+
+  fs::File dosya = fs.open(yol, FILE_APPEND);
+  if(!dosya)
+  {
+    Serial.println("Eklemek icin dosya acilamadi");
+    return;
+  }
+  if(dosya.print(dosyayiEkle))
+  {
+      Serial.println("veri eklendi");
+  } else {
+    Serial.println("ekleme basarisiz");
+  }
+  dosya.close();
+}
+
+void dosyayi_yeniden_adlandir(fs::FS &fs, const char * yol1, const char * yol2)
+{
+  Serial.printf("%S'yi %s'ye yeniden adlandiriliyor: ", yol1, yol2);
+  if (fs.rename(yol1, yol2)) 
+  {
+    Serial.println("Dosya yeniden adlandirildi");
+  } else 
+  {
+    Serial.println("dosya yeniden adlandirma basarisiz");
+  }
+}
+
+void dosyayi_sil(fs::FS &fs, const char * yol)
+{
+  Serial.printf("dosya siliniyor: %s\n", yol);
+  if(fs.remove(yol))
+  {
+    Serial.println("dosya silindi");
+  } else 
+  {
+    Serial.println("silme basarisiz");
+  }
+}
+
+void dosya_test_IO(fs::FS &fs, const char * yol)
+{
+  fs::File dosya = fs.open(yol);
+  static uint8_t buf[512];
+  size_t len = 0;
+  uint32_t start = millis();
+  uint32_t end = start;
+  if(dosya){
+    len = dosya.size();
+    size_t flen = len;
+    start = millis();
+    while(len){
+      size_t toRead = len;
+      if(toRead > 512){
+        toRead = 512;
+      }
+      dosya.read(buf, toRead);
+      len -= toRead;
+    }
+    end = millis() - start;
+    Serial.printf("%u bytes read for %u ms\n", flen, end);
+    dosya.close();
+  } else {
+    Serial.println("Failed to open file for reading");
+  }
+
+
+  dosya = fs.open(yol, FILE_WRITE);
+  if(!dosya){
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+
+  size_t i;
+  start = millis();
+  for(i=0; i<2048; i++){
+    dosya.write(buf, 512);
+  }
+  end = millis() - start;
+  Serial.printf("%u bytes written for %u ms\n", 2048 * 512, end);
+  dosya.close();
 }
